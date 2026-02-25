@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顧客管理システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --accent: #4fffb0;
+    --accent2: #ff6b6b;
+    --accent3: #6b8fff;
+    --text: #e8ecf4;
+    --muted: #6b7590;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* Layout */
+  .app { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+  }
+  .logo span { color: var(--muted); font-weight: 400; }
+  .header-stats {
+    display: flex; gap: 20px; margin-left: auto;
+    align-items: center;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  main { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 61px); overflow: hidden; }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-inner { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+
+  .content { overflow-y: auto; padding: 24px 28px; }
+
+  /* Form */
+  .form-section { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .form-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+  .form-group { margin-bottom: 10px; }
+  .form-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    border-color: var(--accent);
+  }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #0d0f14; width: 100%; padding: 10px; margin-top: 4px; }
+  .btn-primary:hover { background: #3de89a; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-edit { background: var(--surface2); color: var(--accent3); border: 1px solid var(--border); }
+  .btn-edit:hover { border-color: var(--accent3); }
+  .btn-del { background: var(--surface2); color: var(--accent2); border: 1px solid var(--border); }
+  .btn-del:hover { border-color: var(--accent2); }
+  .btn-export { background: var(--surface2); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Search / Filter */
+  .toolbar {
+    display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 12px 9px 36px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--accent); }
+  td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'Space Mono', monospace;
+  }
+  .tag-新規 { background: rgba(75,255,176,0.15); color: var(--accent); }
+  .tag-既存 { background: rgba(107,143,255,0.15); color: var(--accent3); }
+  .tag-休眠 { background: rgba(255,107,107,0.15); color: var(--accent2); }
+  .tag-VIP  { background: rgba(255,200,50,0.15); color: #ffc832; }
+  .actions { display: flex; gap: 6px; }
+  .no-data { text-align: center; padding: 48px 0; color: var(--muted); font-size: 14px; }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    width: 500px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer; line-height: 1;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .btn-cancel { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  /* Detail panel */
+  .detail-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 20px;
+  }
+  .detail-panel h3 { font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .memo-list { display: flex; flex-direction: column; gap: 10px; }
+  .memo-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .memo-meta { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: 'Space Mono', monospace; }
+  .memo-input-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .memo-input-row input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 12px; font-size: 13px; font-family: 'Noto Sans JP', sans-serif; outline: none; }
+  .memo-input-row input:focus { border-color: var(--accent); }
+  .btn-add-memo { background: var(--accent); color: #0d0f14; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-add-memo:hover { background: #3de89a; }
+
+  /* Animations */
+  tr { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .modal { animation: slideUp 0.2s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  /* Loading bar */
+  #loading-bar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    z-index: 9999;
+    animation: loadingAnim 1.2s ease-in-out infinite;
+  }
+  @keyframes loadingAnim {
+    0% { opacity: 1; transform: scaleX(0); transform-origin: left; }
+    50% { opacity: 1; transform: scaleX(1); transform-origin: left; }
+    51% { transform: scaleX(1); transform-origin: right; }
+    100% { opacity: 0.3; transform: scaleX(0); transform-origin: right; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+</style>
+</head>
+<body>
+<div id="loading-bar"></div>
+<div class="app">
+  <header>
+    <div class="logo">CRM<span>.sys</span></div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">総顧客数</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-new">0</div>
+        <div class="stat-label">新規</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-vip">0</div>
+        <div class="stat-label">VIP</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Sidebar: Add Form -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <div class="form-section">
+          <h3>顧客を追加</h3>
+          <div class="form-group">
+            <label>氏名 *</label>
+            <input id="inp-name" type="text" placeholder="例：山田 太郎">
+          </div>
+          <div class="form-group">
+            <label>会社名</label>
+            <input id="inp-company" type="text" placeholder="例：株式会社〇〇">
+          </div>
+          <div class="form-group">
+            <label>メールアドレス</label>
+            <input id="inp-email" type="email" placeholder="example@mail.com">
+          </div>
+          <div class="form-group">
+            <label>電話番号</label>
+            <input id="inp-phone" type="text" placeholder="090-0000-0000">
+          </div>
+          <div class="form-group">
+            <label>X（Twitter）</label>
+            <input id="inp-twitter" type="text" placeholder="@username">
+          </div>
+          <div class="form-group">
+            <label>Instagram</label>
+            <input id="inp-instagram" type="text" placeholder="@username">
+          </div>
+          <div class="form-group">
+            <label>ステータス</label>
+            <select id="inp-status">
+              <option value="新規">新規</option>
+              <option value="既存">既存</option>
+              <option value="VIP">VIP</option>
+              <option value="休眠">休眠</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>メモ</label>
+            <textarea id="inp-memo" placeholder="初回連絡メモなど..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="addCustomer()">＋ 顧客を追加</button>
+        </div>
+
+        <button class="btn btn-export" onclick="exportCSV()">
+          <span>⬇</span> CSV エクスポート
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content: List -->
+    <div class="content">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input id="search" type="text" placeholder="氏名・会社・メールで検索..." oninput="renderTable()">
+        </div>
+        <select class="filter-select" id="filter-status" onchange="renderTable()">
+          <option value="">すべてのステータス</option>
+          <option value="新規">新規</option>
+          <option value="既存">既存</option>
+          <option value="VIP">VIP</option>
+          <option value="休眠">休眠</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('name')">氏名</th>
+              <th onclick="sortBy('company')">会社名</th>
+              <th onclick="sortBy('email')">メール</th>
+              <th>電話</th>
+              <th>SNS</th>
+              <th onclick="sortBy('status')">ステータス</th>
+              <th onclick="sortBy('createdAt')">登録日</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div class="no-data" id="no-data" style="display:none">顧客データがありません</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="edit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>顧客を編集</h2>
+    <input type="hidden" id="edit-id">
+    <div class="form-group"><label>氏名 *</label><input id="edit-name" type="text"></div>
+    <div class="form-group"><label>会社名</label><input id="edit-company" type="text"></div>
+    <div class="form-group"><label>メールアドレス</label><input id="edit-email" type="email"></div>
+    <div class="form-group"><label>電話番号</label><input id="edit-phone" type="text"></div>
+    <div class="form-group"><label>X（Twitter）</label><input id="edit-twitter" type="text" placeholder="@username"></div>
+    <div class="form-group"><label>Instagram</label><input id="edit-instagram" type="text" placeholder="@username"></div>
+    <div class="form-group">
+      <label>ステータス</label>
+      <select id="edit-status">
+        <option value="新規">新規</option>
+        <option value="既存">既存</option>
+        <option value="VIP">VIP</option>
+        <option value="休眠">休眠</option>
+      </select>
+    </div>
+
+    <!-- Memo section inside modal -->
+    <div class="detail-panel">
+      <h3>📝 メモ・コメント</h3>
+      <div class="memo-input-row">
+        <input id="new-memo-text" type="text" placeholder="新しいメモを入力...">
+        <button class="btn-add-memo" onclick="addMemo()">追加</button>
+      </div>
+      <div class="memo-list" id="memo-list"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-sm btn-primary" onclick="saveEdit()" style="width:auto;padding:6px 20px;">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycby8zXE3F4iA0PHjIe4JXrv9YH7Iw0d5pDJwcxU2GKTeGBtlKknUBPu7VKWXsRJEvAPKVA/exec';
+
+  let customers = [];
+  let sortKey = 'createdAt';
+  let sortDir = -1;
+  let editingId = null;
+
+  // ローディングバーの表示制御
+  function setLoading(on) {
+    const bar = document.getElementById('loading-bar');
+    if (bar) bar.style.display = on ? 'block' : 'none';
+  }
+
+  // API呼び出し（Google Apps Script）
+  async function api(action, data = {}) {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action, ...data }),
+      });
+      return await res.json();
+    } catch(e) {
+      alert('通信エラーが発生しました。インターネット接続を確認してください。');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 起動時にスプレッドシートから全データを読み込む
+  async function loadAll() {
+    setLoading(true);
+    const result = await api('getAll');
+    if (result && result.customers) {
+      customers = result.customers;
+      renderTable();
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('stat-total').textContent = customers.length;
+    document.getElementById('stat-new').textContent = customers.filter(c => c.status === '新規').length;
+    document.getElementById('stat-vip').textContent = customers.filter(c => c.status === 'VIP').length;
+  }
+
+  async function addCustomer() {
+    const name = document.getElementById('inp-name').value.trim();
+    if (!name) { alert('氏名は必須です'); return; }
+    const now = new Date();
+    const customer = {
+      id: Date.now().toString(),
+      name,
+      company: document.getElementById('inp-company').value.trim(),
+      email: document.getElementById('inp-email').value.trim(),
+      phone: document.getElementById('inp-phone').value.trim(),
+      twitter: document.getElementById('inp-twitter').value.trim(),
+      instagram: document.getElementById('inp-instagram').value.trim(),
+      status: document.getElementById('inp-status').value,
+      memos: document.getElementById('inp-memo').value.trim()
+        ? [{ text: document.getElementById('inp-memo').value.trim(), date: now.toISOString() }]
+        : [],
+      createdAt: now.toISOString()
+    };
+    // 画面に即反映（楽観的更新）
+    customers.push(customer);
+    ['inp-name','inp-company','inp-email','inp-phone','inp-twitter','inp-instagram','inp-memo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('inp-status').value = '新規';
+    renderTable();
+    // バックグラウンドでスプレッドシートに保存
+    await api('save', { customer });
+  }
+
+  async function deleteCustomer(id) {
+    if (!confirm('この顧客を削除しますか？')) return;
+    customers = customers.filter(c => c.id !== id);
+    renderTable();
+    await api('delete', { id });
+  }
+
+  function openEdit(id) {
+    const c = customers.find(x => x.id === id);
+    if (!c) return;
+    editingId = id;
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-name').value = c.name;
+    document.getElementById('edit-company').value = c.company;
+    document.getElementById('edit-email').value = c.email;
+    document.getElementById('edit-phone').value = c.phone;
+    document.getElementById('edit-twitter').value = c.twitter || '';
+    document.getElementById('edit-instagram').value = c.instagram || '';
+    document.getElementById('edit-status').value = c.status;
+    document.getElementById('new-memo-text').value = '';
+    renderMemos(c.memos);
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+    editingId = null;
+  }
+
+  async function saveEdit() {
+    const name = document.getElementById('edit-name').value.trim();
+    if (!name) { alert('氏名は必須です'); return; }
+    const c = customers.find(x => x.id === editingId);
+    if (!c) return;
+    c.name = name;
+    c.company = document.getElementById('edit-company').value.trim();
+    c.email = document.getElementById('edit-email').value.trim();
+    c.phone = document.getElementById('edit-phone').value.trim();
+    c.twitter = document.getElementById('edit-twitter').value.trim();
+    c.instagram = document.getElementById('edit-instagram').value.trim();
+    c.status = document.getElementById('edit-status').value;
+    renderTable();
+    closeModal();
+    await api('save', { customer: c });
+  }
+
+  async function addMemo() {
+    const text = document.getElementById('new-memo-text').value.trim();
+    if (!text) return;
+    const c = customers.find(x => x.id === editingId);
+    if (!c) return;
+    c.memos = c.memos || [];
+    c.memos.push({ text, date: new Date().toISOString() });
+    document.getElementById('new-memo-text').value = '';
+    renderMemos(c.memos);
+    await api('save', { customer: c });
+  }
+
+  async function deleteMemo(idx) {
+    const c = customers.find(x => x.id === editingId);
+    if (!c) return;
+    c.memos.splice(idx, 1);
+    renderMemos(c.memos);
+    await api('save', { customer: c });
+  }
+
+  function renderMemos(memos) {
+    const list = document.getElementById('memo-list');
+    if (!memos || memos.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px 0">メモがありません</div>';
+      return;
+    }
+    list.innerHTML = memos.map((m, i) => `
+      <div class="memo-item">
+        <div>${escHtml(m.text)}</div>
+        <div class="memo-meta" style="display:flex;justify-content:space-between;align-items:center">
+          <span>${formatDate(m.date)}</span>
+          <button class="btn btn-sm btn-del" onclick="deleteMemo(${i})" style="padding:2px 8px;font-size:11px">削除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = 1; }
+    document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+    renderTable();
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const st = document.getElementById('filter-status').value;
+    return customers.filter(c => {
+      const match = !q || [c.name, c.company, c.email].some(v => v && v.toLowerCase().includes(q));
+      const stMatch = !st || c.status === st;
+      return match && stMatch;
+    }).sort((a, b) => {
+      const av = a[sortKey] || '', bv = b[sortKey] || '';
+      return av < bv ? -sortDir : av > bv ? sortDir : 0;
+    });
+  }
+
+  function renderTable() {
+    const rows = getFiltered();
+    const tbody = document.getElementById('tbody');
+    document.getElementById('no-data').style.display = rows.length ? 'none' : 'block';
+    tbody.innerHTML = rows.map(c => `
+      <tr>
+        <td style="font-weight:500">${escHtml(c.name)}</td>
+        <td>${escHtml(c.company)}</td>
+        <td style="color:var(--accent3)">${escHtml(c.email)}</td>
+        <td style="font-family:'Space Mono',monospace;font-size:12px">${escHtml(c.phone)}</td>
+        <td style="white-space:nowrap">
+          ${c.twitter ? `<a href="https://x.com/${c.twitter.replace('@','')}" target="_blank" style="color:#1da1f2;text-decoration:none;font-size:12px;font-family:'Space Mono',monospace">𝕏 ${escHtml(c.twitter)}</a>` : ''}
+          ${c.twitter && c.instagram ? '<br>' : ''}
+          ${c.instagram ? `<a href="https://instagram.com/${c.instagram.replace('@','')}" target="_blank" style="color:#e1306c;text-decoration:none;font-size:12px;font-family:'Space Mono',monospace">📷 ${escHtml(c.instagram)}</a>` : ''}
+          ${!c.twitter && !c.instagram ? '<span style="color:var(--muted)">—</span>' : ''}
+        </td>
+        <td><span class="tag tag-${c.status}">${c.status}</span></td>
+        <td style="color:var(--muted);font-size:12px;font-family:'Space Mono',monospace">${formatDateShort(c.createdAt)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-sm btn-edit" onclick="openEdit('${c.id}')">編集</button>
+            <button class="btn btn-sm btn-del" onclick="deleteCustomer('${c.id}')">削除</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    updateStats();
+  }
+
+  function exportCSV() {
+    const rows = getFiltered();
+    if (rows.length === 0) { alert('エクスポートするデータがありません'); return; }
+    const header = ['氏名','会社名','メールアドレス','電話番号','X(Twitter)','Instagram','ステータス','登録日','メモ数'];
+    const lines = [header.join(','), ...rows.map(c =>
+      [c.name, c.company, c.email, c.phone, c.twitter||'', c.instagram||'', c.status, formatDateShort(c.createdAt), (c.memos||[]).length]
+        .map(v => `"${String(v).replace(/"/g,'""')}"`)
+        .join(',')
+    )];
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `顧客リスト_${formatDateShort(new Date().toISOString())}.csv`;
+    a.click();
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function formatDateShort(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+  }
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // モーダル背景クリックで閉じる
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // Enterキーでメモ追加
+  document.getElementById('new-memo-text').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addMemo();
+  });
+
+  // 起動時にデータ読み込み
+  loadAll();
+</script>
+</body>
+</html>
