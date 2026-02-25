@@ -431,14 +431,15 @@
     if (bar) bar.style.display = on ? 'block' : 'none';
   }
 
-  // API呼び出し（Google Apps Script）
+  // API呼び出し（Google Apps Script - GETパラメータ方式でCORS回避）
   async function api(action, data = {}) {
     setLoading(true);
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action, ...data }),
-      });
+      const params = new URLSearchParams({ action });
+      for (const [k, v] of Object.entries(data)) {
+        params.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
+      }
+      const res = await fetch(API_URL + '?' + params.toString());
       return await res.json();
     } catch(e) {
       alert('通信エラーが発生しました。インターネット接続を確認してください。');
